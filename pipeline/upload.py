@@ -1,6 +1,7 @@
 """⑤ 유튜브 업로드(공식 Data API v3). 최초 1회 OAuth(client_secret.json 필요), 이후 token.json 재사용.
 - 파일 지문으로 중복 업로드 차단, publishAt 예약, 재시도(지수 백오프), dry-run 지원
 - 설정 방법은 docs/YOUTUBE_SETUP.md"""
+from __future__ import annotations
 import pathlib
 import random
 import time

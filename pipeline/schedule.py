@@ -1,4 +1,5 @@
 """예약 슬롯 계산. 하루 N편(config upload.slots)을 지정 시각에 공개하도록 publishAt을 만든다."""
+from __future__ import annotations
 import datetime as dt
 from zoneinfo import ZoneInfo
 

@@ -1,4 +1,5 @@
 """반자동 폴백: 자동 업로드가 막히거나 쓰기 싫을 때, 영상 옆에 복붙용 메타 파일을 만든다."""
+from __future__ import annotations
 import pathlib
 
 

@@ -1,4 +1,5 @@
 """① 주제 -> 장면 단위 스크립트(JSON). 장면마다 대사/연출/비주얼/효과음을 지정한다."""
+from __future__ import annotations
 import json
 import anthropic
 
