@@ -14,7 +14,7 @@
 ## 시작
 ```
 pip install -r requirements.txt
-cp .env.example .env   # 열어서 ANTHROPIC_API_KEY, PEXELS_API_KEY 입력
+python tools/setup_keys.py   # 키를 물어보고 .env 를 만들어 줌
 python main.py "월요일 아침 출근길 공감" --script-only   # 먼저 스크립트만 검토
 python main.py "월요일 아침 출근길 공감"                 # 전체 렌더
 ```
