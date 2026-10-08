@@ -1,0 +1,16 @@
+# 비밀키/인증
+.env
+client_secret.json
+token.json
+*.pickle
+
+# 산출물/작업물
+work/
+out/
+__pycache__/
+*.pyc
+
+# 대용량 소스(직접 관리)
+assets/memes/
+assets/sfx/
+assets/fonts/

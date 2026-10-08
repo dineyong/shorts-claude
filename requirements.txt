@@ -1,0 +1,7 @@
+anthropic
+edge-tts
+moviepy>=2.0
+requests
+pyyaml
+google-api-python-client
+google-auth-oauthlib
