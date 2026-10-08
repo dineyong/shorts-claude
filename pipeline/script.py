@@ -58,10 +58,13 @@ def generate(topic: str, cfg: dict, category: str | None = None) -> dict:
     )
     msg = client.messages.create(
         model=cfg["llm"]["model"],
-        max_tokens=2500,
+        max_tokens=8000,
         system=SYSTEM,
         messages=[{"role": "user", "content": prompt}],
     )
-    text = msg.content[0].text.strip()
+    # 모델이 thinking 블록을 먼저 돌려줄 수 있어 text 블록만 모은다
+    text = "".join(b.text for b in msg.content if b.type == "text").strip()
+    if not text:
+        raise RuntimeError(f"응답에 텍스트가 없음 (stop_reason={msg.stop_reason}) — max_tokens를 늘려 보세요")
     text = text.removeprefix("```json").removesuffix("```").strip()
     return json.loads(text)
