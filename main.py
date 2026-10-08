@@ -1,18 +1,21 @@
 """사용법: python main.py "주제 한 줄" [--upload]"""
 import argparse
 import datetime
+import hashlib
 import json
 import pathlib
 import yaml
 
 from pipeline import script, tts, assets, edit, upload
 from pipeline.validate import validate
+from pipeline.variation import style_for, vary_scenes
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("topic")
     ap.add_argument("--category", choices=["science", "kitchen", "habit"], help="세부 분야")
+    ap.add_argument("--regen", action="store_true", help="스크립트 캐시 무시하고 새로 생성")
     ap.add_argument("--upload", action="store_true")
     ap.add_argument("--script-only", action="store_true", help="스크립트만 생성해 검토")
     args = ap.parse_args()
@@ -22,7 +25,15 @@ def main():
     work = pathlib.Path("work") / stamp
     work.mkdir(parents=True, exist_ok=True)
 
-    data = script.generate(args.topic, cfg, args.category)
+    key = hashlib.sha256(f"{args.category}|{args.topic}".encode()).hexdigest()[:12]
+    sc_cache = pathlib.Path("cache/script") / f"{key}.json"
+    if sc_cache.exists() and not args.regen:
+        data = json.loads(sc_cache.read_text(encoding="utf-8"))
+        print("(스크립트 캐시 사용 — 새로 받으려면 --regen)")
+    else:
+        data = script.generate(args.topic, cfg, args.category)
+        sc_cache.parent.mkdir(parents=True, exist_ok=True)
+        sc_cache.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     (work / "script.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[1/4] 스크립트 생성: {data['title']}")
     problems = validate(data)
@@ -31,13 +42,16 @@ def main():
     if args.script_only:
         return
 
+    style = style_for(data["title"])
+    data["scenes"] = vary_scenes(data["scenes"], data["title"])
+    print(f"      스타일: {style['name']} / 자막 {style['font_size']}px y={style['caption_y']}")
     data["scenes"] = tts.synthesize(data["scenes"], cfg, work)
     print("[2/4] TTS 완료")
     data["scenes"] = assets.resolve(data["scenes"], cfg, work)
     print("[3/4] 소스 확보 완료")
 
     out = pathlib.Path("out"); out.mkdir(exist_ok=True)
-    video = edit.render(data["scenes"], cfg, out / f"{stamp}.mp4")
+    video = edit.render(data["scenes"], cfg, out / f"{stamp}.mp4", style)
     print(f"[4/4] 렌더 완료: {video}")
 
     if args.upload and cfg["upload"]["enabled"]:

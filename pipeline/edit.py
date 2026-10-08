@@ -6,6 +6,8 @@ from moviepy import (
     ImageClip, TextClip, VideoFileClip, concatenate_videoclips,
 )
 
+from pipeline.subtitle import timings
+
 W, H = 1080, 1920
 
 
@@ -35,16 +37,23 @@ def _apply_effect(c, effect):
     return c
 
 
-def _caption(text, dur, font):
-    return (
-        TextClip(font=font, text=text, font_size=84, color="white",
-                 stroke_color="black", stroke_width=8, method="caption",
-                 size=(W - 160, None), text_align="center")
-        .with_duration(dur).with_position(("center", 1250))
-    )
+def _captions(text, dur, font, style):
+    """구절 단위로 순서대로 바뀌는 자막. 마지막 구절은 강조색."""
+    parts = timings(text, dur)
+    clips = []
+    for i, (chunk, s, e) in enumerate(parts):
+        color = style["accent"] if i == len(parts) - 1 else style["text"]
+        clips.append(
+            TextClip(font=font, text=chunk, font_size=style["font_size"], color=color,
+                     stroke_color=style["stroke"], stroke_width=8, method="caption",
+                     size=(W - 160, None), text_align="center")
+            .with_start(s).with_duration(max(e - s, 0.05))
+            .with_position(("center", style["caption_y"]))
+        )
+    return clips
 
 
-def render(scenes: list, cfg: dict, out_path: pathlib.Path) -> pathlib.Path:
+def render(scenes: list, cfg: dict, out_path: pathlib.Path, style: dict) -> pathlib.Path:
     font = cfg["assets"]["font"]
     sfx_dir = pathlib.Path(cfg["assets"]["sfx_dir"])
     clips = []
@@ -52,7 +61,7 @@ def render(scenes: list, cfg: dict, out_path: pathlib.Path) -> pathlib.Path:
         voice = AudioFileClip(sc["audio"])
         dur = voice.duration + 0.25                      # 대사 뒤 짧은 여백(리듬)
         base = _apply_effect(_base_clip(sc.get("media"), dur), sc.get("effect", "none"))
-        comp = CompositeVideoClip([base, _caption(sc["text"], dur, font)], size=(W, H))
+        comp = CompositeVideoClip([base, *_captions(sc["text"], dur, font, style)], size=(W, H))
         tracks = [voice]
         sfx = sc.get("sfx")
         if sfx and (sfx_dir / f"{sfx}.mp3").exists():
