@@ -88,6 +88,15 @@ def test_package():
     s = txt.read_text(encoding="utf-8")
     assert meta["title"] in s and "확인 필요" in s and "2026-10-10T12:30" in s
 
+def test_env_loader():
+    import os
+    from pipeline.env import load_env
+    d = pathlib.Path(tempfile.mkdtemp()); f = d / ".env"
+    f.write_text('# c\nTEST_KEY_A="abc"\nTEST_KEY_B = xyz\n\nBAD LINE\n', encoding="utf-8")
+    os.environ.pop("TEST_KEY_A", None); os.environ["TEST_KEY_B"] = "keep"
+    load_env(str(f))
+    assert os.environ["TEST_KEY_A"] == "abc" and os.environ["TEST_KEY_B"] == "keep"
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_"):

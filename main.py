@@ -7,11 +7,13 @@ import pathlib
 import yaml
 
 from pipeline import script, tts, assets, edit, upload, ledger, schedule, package
+from pipeline.env import load_env
 from pipeline.validate import validate
 from pipeline.variation import style_for, vary_scenes
 
 
 def main():
+    load_env()
     ap = argparse.ArgumentParser()
     ap.add_argument("topic")
     ap.add_argument("--category", choices=["science", "kitchen", "habit"], help="세부 분야")
