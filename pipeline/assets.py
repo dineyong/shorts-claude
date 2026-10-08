@@ -1,4 +1,4 @@
-"""③ 비주얼 소스 확보: 보유 짤(meme_dir) 우선, 스톡은 Pexels API(세로 영상).
+"""③ 비주얼 소스 확보: 보유 짤(meme_dir) 우선, 스톡은 Pixabay API(없으면 Pexels).
 짤은 저작권/초상권 문제가 없는 것만 meme_dir에 직접 넣어 관리한다."""
 import os
 import random
@@ -38,6 +38,31 @@ def fetch_pexels(query: str, cfg: dict, workdir: pathlib.Path):
     return str(out)
 
 
+def fetch_pixabay(query: str, cfg: dict, workdir: pathlib.Path):
+    """Pixabay 영상 검색. 세로 영상 필터가 없어서 가로 클립도 오며, edit.py가 중앙 크롭한다."""
+    key = os.environ.get(cfg["assets"].get("pixabay_api_key_env", "PIXABAY_API_KEY"))
+    if not key:
+        return None
+    r = requests.get(
+        "https://pixabay.com/api/videos/",
+        params={"key": key, "q": query[:100], "per_page": 5, "safesearch": "true"},
+        timeout=20,
+    )
+    r.raise_for_status()
+    hits = r.json().get("hits", [])
+    if not hits:
+        return None
+    h = random.choice(hits)
+    vids = h.get("videos", {})
+    pick = vids.get("medium") or vids.get("large") or vids.get("small") or vids.get("tiny")
+    if not pick or not pick.get("url"):
+        return None
+    out = workdir / f"pixabay_{h['id']}.mp4"
+    if not out.exists():
+        out.write_bytes(requests.get(pick["url"], timeout=60).content)
+    return str(out)
+
+
 def resolve(scenes: list, cfg: dict, workdir: pathlib.Path) -> list:
     for sc in scenes:
         vis = sc.get("visual", {"type": "text"})
@@ -45,6 +70,7 @@ def resolve(scenes: list, cfg: dict, workdir: pathlib.Path) -> list:
         if vis["type"] == "meme":
             path = pick_meme(vis.get("query", ""), cfg["assets"]["meme_dir"])
         if path is None and vis["type"] in ("stock", "meme"):
-            path = fetch_pexels(vis.get("query", "funny"), cfg, workdir)
+            q = vis.get("query", "funny")
+            path = fetch_pixabay(q, cfg, workdir) or fetch_pexels(q, cfg, workdir)
         sc["media"] = path  # None이면 단색 배경 + 자막
     return scenes

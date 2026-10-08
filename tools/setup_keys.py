@@ -7,7 +7,8 @@ import pathlib
 ENV = pathlib.Path(__file__).resolve().parent.parent / ".env"
 KEYS = [
     ("ANTHROPIC_API_KEY", "Anthropic API 키 (sk-ant-...로 시작)"),
-    ("PEXELS_API_KEY", "Pexels API 키 (아직 없으면 그냥 Enter)"),
+    ("PIXABAY_API_KEY", "Pixabay API 키 (pixabay.com/api/docs 에서 확인, 아직 없으면 Enter)"),
+    ("PEXELS_API_KEY", "Pexels API 키 (신규 발급 중단됨, 없으면 Enter)"),
 ]
 
 

@@ -9,17 +9,17 @@ EFFECTS = {"none", "punch_in", "shake", "zoom_slow"}
 def validate(data: dict) -> list:
     out = []
     scenes = data.get("scenes", [])
-    if not 7 <= len(scenes) <= 11:
-        out.append(f"장면 수 {len(scenes)}개 (권장 7~11)")
-    total = sum(len(s.get("text", "")) for s in scenes)
-    if not 120 <= total <= 330:
-        out.append(f"전체 글자 수 {total} (권장 120~330, 약 25~40초)")
+    if not 8 <= len(scenes) <= 14:
+        out.append(f"장면 수 {len(scenes)}개 (권장 8~14)")
+    total = sum(len(s.get("text", "").replace(" ", "")) for s in scenes)
+    if not 120 <= total <= 280:
+        out.append(f"전체 글자 수(공백 제외) {total} (권장 120~280, 초당 7~9자 기준 약 20~35초)")
     prev = None
     sfx_n = 0
     for i, s in enumerate(scenes, 1):
-        n = len(s.get("text", ""))
-        if not 6 <= n <= 32:
-            out.append(f"{i}번 장면 대사 {n}자 (권장 12~28)")
+        n = len(s.get("text", "").replace(" ", ""))
+        if not 5 <= n <= 24:
+            out.append(f"{i}번 장면 대사 {n}자 (권장 8~20, 공백 제외)")
         if s.get("effect", "none") not in EFFECTS:
             out.append(f"{i}번 장면 effect 값 오류: {s.get('effect')}")
         if s.get("effect") not in (None, "none") and s.get("effect") == prev:

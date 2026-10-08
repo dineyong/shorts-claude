@@ -18,7 +18,7 @@ video:
   width: 1080
   height: 1920
   fps: 30
-  max_seconds: 45
+  max_seconds: 40
 
 llm:
   model: claude-sonnet-5-5   # 환경변수 ANTHROPIC_API_KEY 필요
@@ -26,12 +26,13 @@ llm:
 tts:
   provider: edge             # edge(무료) | 추후 elevenlabs 등으로 교체
   voices:
-    narrator: {name: ko-KR-InJoonNeural, rate: "+15%", pitch: "+0Hz"}
+    narrator: {name: ko-KR-InJoonNeural, rate: "+30%", pitch: "+0Hz"}
     funny:    {name: ko-KR-SunHiNeural,  rate: "+30%", pitch: "+25Hz"}   # 빠르고 높은 톤
     deep:     {name: ko-KR-InJoonNeural, rate: "-5%",  pitch: "-30Hz"}   # 진지한 척하는 낮은 톤
 
 assets:
-  pexels_api_key_env: PEXELS_API_KEY
+  pixabay_api_key_env: PIXABAY_API_KEY   # 1순위 스톡 영상
+  pexels_api_key_env: PEXELS_API_KEY     # 신규 발급 중단 중. 기존 키가 있을 때만 폴백
   meme_dir: assets/memes     # 직접 큐레이션한 짤 폴더: memes/<태그>/*.png|gif|mp4
   sfx_dir: assets/sfx        # 효과음: sfx/<이름>.mp3 (뿅, 두둥, 띠로리 등)
   font: assets/fonts/Pretendard-ExtraBold.otf   # 직접 넣어야 함
