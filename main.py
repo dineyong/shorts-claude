@@ -6,11 +6,13 @@ import pathlib
 import yaml
 
 from pipeline import script, tts, assets, edit, upload
+from pipeline.validate import validate
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("topic")
+    ap.add_argument("--category", choices=["science", "kitchen", "habit"], help="세부 분야")
     ap.add_argument("--upload", action="store_true")
     ap.add_argument("--script-only", action="store_true", help="스크립트만 생성해 검토")
     args = ap.parse_args()
@@ -20,9 +22,12 @@ def main():
     work = pathlib.Path("work") / stamp
     work.mkdir(parents=True, exist_ok=True)
 
-    data = script.generate(args.topic, cfg)
+    data = script.generate(args.topic, cfg, args.category)
     (work / "script.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[1/4] 스크립트 생성: {data['title']}")
+    problems = validate(data)
+    for pr in problems:
+        print("  ⚠", pr)
     if args.script_only:
         return
 
