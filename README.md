@@ -9,6 +9,7 @@
 - `pipeline/assets.py` 보유 짤 우선 → Pexels 세로 영상 폴백
 - `pipeline/edit.py` MoviePy 2.x 편집
 - `pipeline/upload.py` YouTube Data API (기본 비활성)
+- `docs/ROADMAP.md` 목표·세션별 계획·진행률 (`python tools/progress.py`로 갱신)
 
 ## 시작
 ```
