@@ -6,7 +6,7 @@ import json
 import pathlib
 import yaml
 
-from pipeline import script, tts, assets, edit, upload
+from pipeline import script, tts, assets, edit, upload, ledger, schedule, package
 from pipeline.validate import validate
 from pipeline.variation import style_for, vary_scenes
 
@@ -54,8 +54,15 @@ def main():
     video = edit.render(data["scenes"], cfg, out / f"{stamp}.mp4", style)
     print(f"[4/4] 렌더 완료: {video}")
 
+    publish_at = None
+    if cfg["upload"].get("mode") == "schedule":
+        up = cfg["upload"]
+        publish_at = schedule.next_slots(1, up["slots"], up["timezone"], taken=ledger.taken_slots())[0]
+    print("수동 업로드용 메타:", package.write_package(video, data, publish_at))
     if args.upload and cfg["upload"]["enabled"]:
-        print("업로드:", upload.upload(video, data, cfg).get("id"))
+        upload.upload(video, data, cfg, publish_at=publish_at)
+    elif args.upload:
+        print("config.yaml 의 upload.enabled 가 false 라 업로드하지 않았습니다.")
 
 
 if __name__ == "__main__":

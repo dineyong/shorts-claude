@@ -37,5 +37,10 @@ assets:
   font: assets/fonts/Pretendard-ExtraBold.otf   # 직접 넣어야 함
 
 upload:
-  enabled: false             # 처음엔 끄고 결과물 확인 후 켜기
-  privacy: private
+  enabled: false             # true로 바꾸면 main.py --upload 가 실제 업로드
+  mode: schedule             # schedule(예약 공개) | now(바로 privacy 값대로)
+  privacy: private           # mode=now 일 때만 의미. 예약은 항상 private로 올라가 시각에 공개됨
+  slots: ["12:30", "19:30"]  # 하루 2편 공개 시각 (timezone 기준)
+  timezone: Asia/Seoul
+  category_id: 27            # 27=교육 (과학·생활 팁)
+  contains_synthetic_media: false   # 유튜브 '변경/합성 콘텐츠' 공개 항목 — 최신 정책 확인 후 결정
