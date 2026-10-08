@@ -23,7 +23,9 @@ B) 한 가지 깊게: 훅 → 정체/결론 → "그런데 이상한 점" → �
 - 전문 용어는 쓰면 바로 쉬운 말로 푼다.
 
 [연출]
-- visual.type: stock(스톡영상, query는 영어, 구체적 장면 묘사: 누가·어디서·무엇을) | meme(보유 짤 태그) | text(자막만)
+- visual.type: stock(스톡영상) | meme(보유 짤 태그) | text(자막만)
+- stock이면 query(영어, 스톡 사이트에서 실제로 검색될 짧고 흔한 말 2~4단어. 예: 'sleeping woman bed', 'moon night sky'), alt_queries(다른 표현 2개), show(그 순간 화면에 보여야 할 것, 한국어 한 문장)를 쓴다.
+- 스톡 사이트에 흔한 피사체(사람·자연·도시·음식·동물·기계)로 연상해서 고른다. 너무 구체적이거나 추상적인 검색어는 결과가 엉뚱하니 쓰지 않는다.
 - 가능하면 모든 장면에 stock을 쓴다. 한 장면 한 이미지. 같은 query 반복 금지.
 - effect: none | punch_in(핵심 단어에서 확대) | shake(놀람) | zoom_slow
 - voice: narrator(기본) | funny(과장·반전) | deep(진지하게 놀리기)
@@ -53,7 +55,7 @@ SCHEMA_HINT = {
     "scenes": [{
         "text": "대사(=자막)",
         "voice": "narrator",
-        "visual": {"type": "stock", "query": "tired office worker"},
+        "visual": {"type": "stock", "query": "tired office worker", "alt_queries": ["sleepy man desk", "yawning employee"], "show": "책상에서 졸린 직장인"},
         "effect": "punch_in",
         "sfx": "ding",
     }],
