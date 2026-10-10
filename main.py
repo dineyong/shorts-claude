@@ -18,22 +18,25 @@ def main():
     ap.add_argument("topic")
     ap.add_argument("--category", choices=["science", "kitchen", "habit"], help="세부 분야")
     ap.add_argument("--regen", action="store_true", help="스크립트 캐시 무시하고 새로 생성")
+    ap.add_argument("--facts-file", help="검증된 사실·출처 텍스트 파일. 지정하면 스크립트의 사실 주장을 이 범위로 제한")
+    ap.add_argument("--config", default="config.yaml", help="설정 파일 경로")
     ap.add_argument("--upload", action="store_true")
     ap.add_argument("--script-only", action="store_true", help="스크립트만 생성해 검토")
     args = ap.parse_args()
 
-    cfg = yaml.safe_load(open("config.yaml", encoding="utf-8"))
+    cfg = yaml.safe_load(open(args.config, encoding="utf-8"))
     stamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     work = pathlib.Path("work") / stamp
     work.mkdir(parents=True, exist_ok=True)
 
-    key = hashlib.sha256(f"{args.category}|{args.topic}".encode()).hexdigest()[:12]
+    facts = pathlib.Path(args.facts_file).read_text(encoding="utf-8") if args.facts_file else None
+    key = hashlib.sha256(f"{args.category}|{args.topic}|{facts or ''}".encode()).hexdigest()[:12]
     sc_cache = pathlib.Path("cache/script") / f"{key}.json"
     if sc_cache.exists() and not args.regen:
         data = json.loads(sc_cache.read_text(encoding="utf-8"))
         print("(스크립트 캐시 사용 — 새로 받으려면 --regen)")
     else:
-        data = script.generate(args.topic, cfg, args.category)
+        data = script.generate(args.topic, cfg, args.category, facts)
         sc_cache.parent.mkdir(parents=True, exist_ok=True)
         sc_cache.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     (work / "script.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -166,6 +166,8 @@ def resolve(scenes: list, cfg: dict, workdir: pathlib.Path) -> list:
                 used.add(int(pathlib.Path(path).stem.split('_')[1]))
             if path is None and not os.environ.get(cfg["assets"].get("pixabay_api_key_env", "PIXABAY_API_KEY")):
                 path = fetch_pexels(vis.get("query", "funny"), cfg, workdir)   # Pixabay 키가 없을 때만 폴백
+        if path is None and vis["type"] in ("stock", "meme") and n > 0 and scenes[n - 1].get("media"):
+            path, why = scenes[n - 1]["media"], (why + " → 이전 장면 영상을 이어 씀")   # 단색 배경보다 낫다
         sc["media"] = path  # None이면 단색 배경 + 자막
         if vis["type"] in ("stock", "meme"):
             report.append({"scene": n, "text": sc["text"], "media": path, "why": why})

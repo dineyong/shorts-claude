@@ -62,7 +62,7 @@ SCHEMA_HINT = {
 }
 
 
-def generate(topic: str, cfg: dict, category: str | None = None) -> dict:
+def generate(topic: str, cfg: dict, category: str | None = None, facts: str | None = None) -> dict:
     client = anthropic.Anthropic()
     cat = cfg["channel"].get("topics", {}).get(category or "", None)
     cat_line = f"세부 분야: {cat['name']} — {cat['guide']}\n" if cat else ""
@@ -70,6 +70,8 @@ def generate(topic: str, cfg: dict, category: str | None = None) -> dict:
         f"채널 톤: {cfg['channel']['persona']}\n"
         f"{cat_line}"
         f"주제: {topic}\n"
+        + (f"[검증된 사실과 출처 — 사실 주장은 아래 범위 안에서만 한다. 범위 밖 사실은 쓰지 않는다. "
+           f"claims의 source에는 아래 출처를 그대로 쓴다]\n{facts}\n" if facts else "") +
         f"최대 길이: {cfg['video']['max_seconds']}초\n"
         f"출력 형식 예시:\n{json.dumps(SCHEMA_HINT, ensure_ascii=False)}"
     )

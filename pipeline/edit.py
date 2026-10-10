@@ -59,7 +59,7 @@ def render(scenes: list, cfg: dict, out_path: pathlib.Path, style: dict) -> path
     clips = []
     for sc in scenes:
         voice = AudioFileClip(sc["audio"])
-        dur = voice.duration + 0.25                      # 대사 뒤 짧은 여백(리듬)
+        dur = voice.duration + 0.12                      # 대사 뒤 짧은 여백(리듬)
         base = _apply_effect(_base_clip(sc.get("media"), dur), sc.get("effect", "none"))
         comp = CompositeVideoClip([base, *_captions(sc["text"], dur, font, style)], size=(W, H))
         tracks = [voice]

@@ -24,6 +24,7 @@ llm:
   model: claude-sonnet-5-5   # 환경변수 ANTHROPIC_API_KEY 필요
 
 tts:
+  postprocess: {tempo: 1.12, v: 2}   # 앞뒤 무음 제거 + 속도(피치 유지). 외부 TTS로 바꾸면 조정
   provider: edge             # edge(무료) | 추후 elevenlabs 등으로 교체
   voices:
     narrator: {name: ko-KR-InJoonNeural, rate: "+30%", pitch: "+0Hz"}
