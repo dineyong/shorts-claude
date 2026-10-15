@@ -26,6 +26,8 @@ DEFAULTS = {
     },
     "yt_category_ids": {},          # 비어 있으면 catalog 기본값
     "auto_queue": [],               # 폴더에서 읽어온 영상을 점검 통과 시 자동으로 발행 대기에 넣을 카테고리 (예: ["science","humor"], 롱폼은 "longform")
+    "pipeline_dir": "",             # 영상 제작 프로그램(main.py가 있는 폴더). 비우면 이 앱 바로 위 폴더를 자동 탐색
+    "pipeline_python": "",          # 제작용 파이썬. 비우면 pipeline_dir/.venv, 그것도 없으면 이 앱의 파이썬
     "disclosure_keywords": ["광고", "협찬", "제휴", "수수료", "파트너스"],
 }
 

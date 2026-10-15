@@ -39,6 +39,13 @@ def validate_video(v: dict, settings: dict) -> tuple:
     elif fp.suffix.lower() not in config.VIDEO_EXT:
         errors.append(f"지원하지 않는 형식입니다 ({fp.suffix})")
 
+    claims = v.get("claims") or []
+    unchecked = [c for c in claims if not c.get("checked")]
+    if unchecked:
+        errors.append(f"사실 확인: 영상 속 주장 {len(unchecked)}개의 출처를 확인하고 체크해야 합니다 (잘못된 정보 방지)")
+    if any(x.get("source") == "직접 보유 파일" for x in (v.get("sources") or [])):
+        warns.append("직접 보유한 파일을 썼습니다. 사용권을 확인하세요")
+
     # ---- 카테고리별 규칙 ----
     if fmt == "shorts" and cat == "drama_movie" and not v.get("rights_confirmed"):
         errors.append("드라마/영화: 사용권·저작권 확인 체크가 필요합니다 (타인의 방송·영화 영상은 저작권 문제로 삭제·수익 제한될 수 있음)")

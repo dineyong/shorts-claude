@@ -64,6 +64,7 @@ async function viewList(fmt) {
     h += `<div class="sub">` + Object.entries(S.shorts_categories).map(([k, n]) => `<button class="cat-${k} ${k === subCat ? "on" : ""}" data-sub="${k}">${esc(n)}</button>`).join("") + `</div>`;
     cat = subCat;
   }
+  if (fmt === "shorts" && cat === "science") h += makePanel();
   h += `<div class="drop" id="drop">영상을 여기로 끌어다 놓거나 <label style="display:inline;color:var(--ink);text-decoration:underline;cursor:pointer">파일 선택<input id="file" type="file" multiple accept=".mp4,.mov,.webm,.m4v" hidden></label> (mp4·mov·webm·m4v)<div id="prog"></div></div>`;
   h += `<div class="row"><span class="mute grow">폴더로 넣기: ${esc(S.inbox_dir)}/${fmt}${cat ? "/" + cat : ""}</span><button id="scan">폴더 새로고침</button></div>`;
   const vs = await api("GET", `/api/videos?format=${fmt}${cat ? "&category=" + cat : ""}`);
@@ -82,12 +83,57 @@ async function viewList(fmt) {
   document.querySelectorAll("tr[data-vid]").forEach(r => r.onclick = e => { if (!e.target.closest("button")) openVideo(+r.dataset.vid); });
   document.querySelectorAll("[data-q]").forEach(b => b.onclick = () => queueVideo(+b.dataset.q));
   $("#scan").onclick = () => act(() => api("POST", "/api/inbox/scan", {}), "폴더를 확인했습니다").then(render);
+  if ($("#mk")) wireMake();
   const drop = $("#drop");
   drop.ondragover = e => { e.preventDefault(); drop.classList.add("over"); };
   drop.ondragleave = () => drop.classList.remove("over");
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove("over"); uploadFiles(e.dataTransfer.files, fmt, cat); };
   $("#file").onchange = e => uploadFiles(e.target.files, fmt, cat);
   api("GET", "/api/stats/overview?format=" + fmt).then(o => o.videos.forEach(r => { const c = document.querySelector(`.vw[data-id="${r.id}"]`); if (c) c.textContent = fmtN(r.views); })).catch(() => {});
+}
+function makePanel() {
+  if (!S.pipeline_ready) return `<div class="card"><b>영상 자동 제작</b><p class="mute">영상 제작 프로그램(main.py)을 찾지 못했습니다. 설정 탭의 '제작 폴더'에 폴더를 지정하면 여기서 주제만 입력해 영상을 만들 수 있습니다.</p></div>`;
+  return `<div class="card" id="mk"><b>영상 자동 제작</b>
+  <div class="row" style="margin-top:8px"><input type="text" id="mk_topic" placeholder="주제 한 줄 (예: 거북이도 물속에서 익사한다고?)" style="flex:1;min-width:220px">
+  <select id="mk_sub" style="width:auto">${Object.entries(S.job_subs).map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("")}</select></div>
+  <label class="chk"><input type="checkbox" id="mk_so" checked>스크립트만 먼저 만들어 확인한 뒤 영상 만들기 (권장 — 렌더 시간과 비용 절약)</label>
+  <div class="row"><button class="primary" id="mk_go">만들기</button><span class="mute">스크립트는 Claude API를 쓰고, 영상까지 만들면 수 분 걸립니다.</span></div>
+  <div id="jobs"></div></div>`;
+}
+function wireMake() {
+  $("#mk_go").onclick = async () => {
+    const topic = $("#mk_topic").value.trim(); if (!topic) return toast("주제를 입력하세요");
+    await act(() => api("POST", "/api/make", {topic, sub: $("#mk_sub").value, category: "science", script_only: $("#mk_so").checked}), "제작을 시작했습니다");
+    $("#mk_topic").value = ""; loadJobs();
+  };
+  loadJobs();
+}
+const JOB_LABEL = {running: "만드는 중", script_ready: "스크립트 확인 대기", done: "완료", failed: "실패"};
+async function loadJobs() {
+  const box = $("#jobs"); if (!box) return;
+  const js = await api("GET", "/api/jobs");
+  box.innerHTML = js.length ? `<table class="list" style="margin-top:10px"><tr><th>주제</th><th>상태</th><th></th></tr>` + js.slice(0, 6).map(j =>
+    `<tr class="click" data-job="${j.id}"><td>${esc(j.topic)}${j.script_only ? ' <span class="mute">(스크립트)</span>' : ""}</td><td><span class="pill ${j.status === "failed" ? "failed" : j.status === "done" ? "published" : "queued"}">${JOB_LABEL[j.status] || j.status}</span></td><td class="mute">${fmtAt(j.created_at)}</td></tr>`).join("") + `</table>` : "";
+  box.querySelectorAll("[data-job]").forEach(r => r.onclick = () => openJob(+r.dataset.job));
+  clearTimeout(loadJobs.t);
+  if (js.some(j => j.status === "running")) loadJobs.t = setTimeout(loadJobs, 3000);
+  else if (loadJobs.was) { loadJobs.was = false; render(); }
+  loadJobs.was = loadJobs.was || js.some(j => j.status === "running");
+}
+async function openJob(id) {
+  const j = await api("GET", "/api/jobs/" + id), d = $("#dlg");
+  const sc = j.script;
+  d.innerHTML = `<h2>${esc(j.topic)}</h2><p><span class="pill ${j.status === "failed" ? "failed" : j.status === "done" ? "published" : "queued"}">${JOB_LABEL[j.status] || j.status}</span></p>
+  ${j.error ? `<p class="errs">${esc(j.error)}</p>` : ""}
+  ${sc ? `<h3>${esc(sc.title || "")}</h3><ol>${(sc.scenes || []).map(x => `<li>${esc(x.text)}</li>`).join("")}</ol>
+  <h3>사실 주장과 출처</h3><ul>${(sc.claims || []).map(c => `<li>${esc(c.claim)}<br><span class="mute">${esc(c.source)}</span></li>`).join("")}</ul>
+  <p class="mute">영상을 만들면 이 주장들이 '사실 확인' 체크 목록으로 들어가고, 모두 확인해야 예약할 수 있습니다.</p>` : ""}
+  <h3>진행 기록</h3><pre style="max-height:200px;overflow:auto;background:var(--paper);padding:8px;border-radius:6px;font-size:12px;white-space:pre-wrap">${esc(j.log || "")}</pre>
+  <div class="row">${j.status === "script_ready" ? `<button class="primary" id="jr">이 스크립트로 영상 만들기</button>` : ""}${j.video_id ? `<button id="jv">영상 보기</button>` : ""}<span class="grow"></span><button id="jc">닫기</button></div>`;
+  d.showModal();
+  $("#jc").onclick = () => { d.close(); loadJobs(); };
+  if ($("#jr")) $("#jr").onclick = async () => { await act(() => api("POST", "/api/make", {from_job: id, category: "science"}), "영상 제작을 시작했습니다"); d.close(); loadJobs(); };
+  if ($("#jv")) $("#jv").onclick = () => { d.close(); openVideo(j.video_id); };
 }
 function uploadFiles(files, fmt, cat) {
   const list = [...files]; if (!list.length) return;
@@ -122,12 +168,15 @@ async function openVideo(id) {
   ${v.errors.length ? `<ul class="errs">${v.errors.map(e => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
   ${v.warnings.length ? `<ul class="warns">${v.warnings.map(e => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
   ${catSel}
+  ${(v.claims || []).length ? `<h3>사실 확인 (${v.claims.filter(c => c.checked).length}/${v.claims.length})</h3><p class="mute">영상에서 말한 주장입니다. 출처를 직접 찾아 확인한 것만 체크하세요. 모두 체크해야 예약할 수 있습니다.</p>` + v.claims.map((c, i) => `<label class="chk"><input type="checkbox" data-claim="${i}" ${c.checked ? "checked" : ""} ${ro ? "disabled" : ""}><span>${esc(c.claim)}<br><span class="mute">${esc(c.source)}</span></span></label>`).join("") : ""}
+  ${(v.problems || []).length ? `<ul class="warns">${v.problems.filter(x => !x.includes("출처 확인 필요")).map(e => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}
   <label>제목 (100자 이내)</label><input type="text" id="f_title" maxlength="100" value="${esc(v.title)}" ${ro ? "disabled" : ""}>
   <label>설명</label><textarea id="f_desc" ${ro ? "disabled" : ""}>${esc(v.description)}</textarea>
   <label>태그 (쉼표로 구분)</label><input type="text" id="f_tags" value="${esc((v.tags || []).join(", "))}" ${ro ? "disabled" : ""}>
   <label class="chk"><input type="checkbox" id="f_syn" ${v.synthetic ? "checked" : ""} ${ro ? "disabled" : ""}>AI로 만들었거나 합성한 장면이 있습니다 (유튜브 '변경/합성 콘텐츠' 공개)</label>
   ${v.category === "shopping" ? `<label class="chk"><input type="checkbox" id="f_aff" ${v.affiliate ? "checked" : ""} ${ro ? "disabled" : ""}>제휴 링크·협찬이 포함된 영상입니다 (설명에 '광고/협찬/제휴' 문구 필요)</label>` : ""}
   ${v.category === "drama_movie" ? `<label class="chk"><input type="checkbox" id="f_rts" ${v.rights_confirmed ? "checked" : ""} ${ro ? "disabled" : ""}>이 영상에 쓴 장면·음악의 사용 권리를 확인했습니다 (저작권 신고·수익 제한 위험은 본인 책임)</label>` : ""}
+  ${(v.sources || []).length ? `<h3>쓴 영상 소스와 라이선스</h3><table class="list"><tr><th>장면</th><th>출처</th><th>라이선스</th></tr>${v.sources.map(x => `<tr><td>${x.scene + 1}</td><td>${esc(x.source)} ${esc(x.id)}</td><td class="mute">${esc(x.license)}</td></tr>`).join("")}</table>` : ""}
   <div class="row" style="margin-top:16px">
     ${ro ? "" : `<button class="primary" id="b_save">저장</button>`}
     ${v.status === "draft" || v.status === "failed" ? `<button id="b_queue">저장하고 예약</button>` : ""}
@@ -138,6 +187,7 @@ async function openVideo(id) {
   d.showModal();
   const save = async () => {
     const body = {title: $("#f_title").value, description: $("#f_desc").value, tags: $("#f_tags").value.split(",").map(s => s.trim()).filter(Boolean), synthetic: $("#f_syn").checked};
+    if (v.claims && v.claims.length) body.claims = v.claims.map((c, i) => ({checked: !!(document.querySelector(`[data-claim="${i}"]`) || {}).checked}));
     if ($("#f_cat")) body.category = $("#f_cat").value;
     if ($("#f_aff")) body.affiliate = $("#f_aff").checked;
     if ($("#f_rts")) body.rights_confirmed = $("#f_rts").checked;
@@ -210,7 +260,7 @@ async function viewSettings() {
   $("#save").onclick = async () => {
     const times = v => v.split(",").map(x => x.trim()).filter(Boolean);
     const map = {}; document.querySelectorAll("[data-map]").forEach(e => map[e.dataset.map] = e.value);
-    const body = {mode: document.querySelector("input[name=mode]:checked").value, timezone: $("#tz").value.trim(), daily_upload_cap: +$("#cap").value,
+    const body = {pipeline_dir: $("#pdir").value.trim(), mode: document.querySelector("input[name=mode]:checked").value, timezone: $("#tz").value.trim(), daily_upload_cap: +$("#cap").value,
       shorts: {slots: times($("#slots").value)}, longform: {enabled: $("#lf").checked, slots: times($("#lfs").value)}, channel_map: map,
       auto_queue: [...document.querySelectorAll("[data-auto]:checked")].map(e => e.dataset.auto)};
     await act(() => api("PUT", "/api/settings", body), "저장했습니다"); await loadState(); render();
@@ -232,4 +282,5 @@ async function render() {
 }
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => { tab = b.dataset.tab; render(); });
 render();
-setInterval(() => { if (!$("#dlg").open && tab !== "settings" && !document.querySelector("#prog .bar")) render(); }, 60000);
+setInterval(() => { const a = document.activeElement, typing = a && /INPUT|TEXTAREA|SELECT/.test(a.tagName) || ($("#mk_topic") && $("#mk_topic").value);
+  if (!$("#dlg").open && tab !== "settings" && !typing && !document.querySelector("#prog .bar")) render(); }, 60000);

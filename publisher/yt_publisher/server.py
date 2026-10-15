@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 from zoneinfo import ZoneInfo
 
-from . import __version__, checks, config, db, grid, inbox, publisher, stats, worker
+from . import __version__, checks, config, db, grid, inbox, jobs, publisher, stats, worker
 from .catalog import FORMATS, SHORTS_CATEGORIES, STATUS_LABEL
 from .errors import PublishError
 from .youtube import YouTubeClient, client_for, token_path
@@ -26,14 +26,14 @@ class Api(Exception):
         self.status, self.msg, self.extra = status, msg, extra or {}
 
 
-EDITABLE = {"title", "description", "tags", "category", "affiliate", "rights_confirmed", "synthetic"}
+EDITABLE = {"title", "description", "tags", "category", "affiliate", "rights_confirmed", "synthetic", "claims"}
 
 
 def _video_out(v: dict, settings: dict) -> dict:
     errs, warns = checks.validate_video(v, settings)
     out = {k: v[k] for k in ("id", "format", "category", "title", "description", "tags", "status", "publish_at",
                              "youtube_id", "affiliate", "rights_confirmed", "synthetic", "error", "attempts",
-                             "channel_id", "created_at", "uploaded_at")}
+                             "channel_id", "created_at", "uploaded_at", "claims", "sources", "problems")}
     out["status_label"] = STATUS_LABEL.get(v["status"], v["status"])
     out["file_name"] = pathlib.Path(v["file_path"]).name
     out["errors"], out["warnings"] = errs, warns
@@ -51,6 +51,7 @@ def state_payload() -> dict:
         counts[v["status"]] = counts.get(v["status"], 0) + 1
     return {"version": __version__, "settings": s, "channels": chans, "counts": counts,
             "formats": FORMATS, "shorts_categories": SHORTS_CATEGORIES, "status_label": STATUS_LABEL,
+            "pipeline_ready": bool(jobs.pipeline_dir(s)), "job_subs": jobs.SUBS,
             "has_secret": config.SECRET_PATH.exists(), "last_tick": worker.last_tick(),
             "data_dir": str(config.DATA_DIR), "inbox_dir": str(config.INBOX_DIR),
             "auth": _auth_state}
@@ -111,6 +112,19 @@ def handle(method: str, path: str, query: dict, h) -> object:
             v = _need_video(int(m.group(1)))
             now = dt.datetime.now(ZoneInfo(s["timezone"]))
             return {"summary": stats.video_summary(v, now), "snapshots": db.snapshots(v["id"])}
+        if p == "/api/jobs":
+            return db.list_jobs()
+        m = re.fullmatch(r"/api/jobs/(\d+)", p)
+        if m:
+            j = db.get_job(int(m.group(1)))
+            if not j:
+                raise Api(404, "작업을 찾을 수 없습니다")
+            if j.get("script_path") and pathlib.Path(j["script_path"]).exists():
+                try:
+                    j["script"] = json.loads(pathlib.Path(j["script_path"]).read_text(encoding="utf-8"))
+                except ValueError:
+                    pass
+            return j
         if p == "/api/settings":
             return s
         if p == "/api/logs":
@@ -130,6 +144,12 @@ def handle(method: str, path: str, query: dict, h) -> object:
                     f[k] = int(bool(f[k]))
             if "tags" in f and isinstance(f["tags"], str):
                 f["tags"] = [t.strip().lstrip("#") for t in re.split(r"[,\n]", f["tags"]) if t.strip()]
+            if "claims" in f:
+                if not isinstance(f["claims"], list):
+                    raise Api(400, "claims 형식이 올바르지 않습니다")
+                old = v["claims"]
+                f["claims"] = [{"claim": old[i]["claim"], "source": old[i]["source"], "checked": bool(c.get("checked"))}
+                               for i, c in enumerate(f["claims"][:len(old)])]
             if "category" in f and v["format"] == "shorts" and f["category"] not in SHORTS_CATEGORIES:
                 raise Api(400, "카테고리가 올바르지 않습니다")
             if f:
@@ -167,6 +187,14 @@ def handle(method: str, path: str, query: dict, h) -> object:
             except ValueError as e:
                 raise Api(409, str(e))
             return {"ok": True}
+        if p == "/api/make":
+            body = _json_body(h)
+            try:
+                jid = jobs.start(s, body.get("topic", ""), body.get("sub", "science"), body.get("category", "science"),
+                                 bool(body.get("script_only")), body.get("from_job"))
+            except jobs.JobError as e:
+                raise Api(409, str(e))
+            return {"id": jid}
         if p == "/api/inbox/scan":
             return inbox.scan_inbox()
         if p == "/api/run":

@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS videos (
   attempts INTEGER DEFAULT 0,
   next_attempt_at TEXT,
   error TEXT,
+  claims TEXT DEFAULT '[]',             -- [{claim, source, checked}] 사실 주장과 사람이 확인했는지
+  sources TEXT DEFAULT '[]',            -- 쓴 영상 소스와 라이선스 기록
+  problems TEXT DEFAULT '[]',           -- 제작 단계 검수기가 남긴 경고
   created_at TEXT, updated_at TEXT, uploaded_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_videos_hash ON videos(file_hash) WHERE file_hash IS NOT NULL;
@@ -41,6 +44,13 @@ CREATE INDEX IF NOT EXISTS ix_snap_video ON stat_snapshots(video_id, captured_at
 CREATE TABLE IF NOT EXISTS channels (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT
 );
+CREATE TABLE IF NOT EXISTS jobs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  topic TEXT NOT NULL, sub TEXT, category TEXT, script_only INTEGER DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'running',   -- running | script_ready | done | failed
+  log TEXT DEFAULT '', script_path TEXT, video_id INTEGER, error TEXT,
+  created_at TEXT, finished_at TEXT
+);
 CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, level TEXT, msg TEXT
@@ -50,8 +60,9 @@ CREATE TABLE IF NOT EXISTS logs (
 VIDEO_FIELDS = {
     "format", "category", "title", "description", "tags", "file_path", "file_hash",
     "channel_id", "status", "publish_at", "youtube_id", "affiliate", "rights_confirmed",
-    "synthetic", "attempts", "next_attempt_at", "error", "uploaded_at",
+    "synthetic", "attempts", "next_attempt_at", "error", "uploaded_at", "claims", "sources", "problems",
 }
+JSON_FIELDS = ("tags", "claims", "sources", "problems")
 
 
 def now_iso() -> str:
@@ -75,6 +86,10 @@ def init() -> None:
     with connect() as c:
         c.execute("PRAGMA journal_mode=WAL")
         c.executescript(SCHEMA)
+        have = {r["name"] for r in c.execute("PRAGMA table_info(videos)")}   # 이전 버전 DB 이전(마이그레이션)
+        for col in ("claims", "sources", "problems"):
+            if col not in have:
+                c.execute(f"ALTER TABLE videos ADD COLUMN {col} TEXT DEFAULT '[]'")
         c.execute("INSERT OR IGNORE INTO channels(id,name,created_at) VALUES('default','기본 채널',?)", (now_iso(),))
 
 
@@ -98,15 +113,21 @@ def save_settings(new: dict) -> dict:
 # ---- videos ----
 def _row(r) -> dict:
     d = dict(r)
-    d["tags"] = json.loads(d.get("tags") or "[]")
+    for k in JSON_FIELDS:
+        d[k] = json.loads(d.get(k) or "[]")
     return d
+
+
+def _enc(f: dict) -> None:
+    for k in JSON_FIELDS:
+        if isinstance(f.get(k), (list, tuple)):
+            f[k] = json.dumps(list(f[k]), ensure_ascii=False)
 
 
 def add_video(**f) -> int:
     f.setdefault("created_at", now_iso())
     f["updated_at"] = f["created_at"]
-    if isinstance(f.get("tags"), (list, tuple)):
-        f["tags"] = json.dumps(list(f["tags"]), ensure_ascii=False)
+    _enc(f)
     cols = ",".join(f)
     ph = ",".join("?" for _ in f)
     with connect() as c:
@@ -141,8 +162,7 @@ def update_video(vid: int, **f) -> None:
     bad = set(f) - VIDEO_FIELDS
     if bad:
         raise ValueError(f"수정할 수 없는 필드: {bad}")
-    if isinstance(f.get("tags"), (list, tuple)):
-        f["tags"] = json.dumps(list(f["tags"]), ensure_ascii=False)
+    _enc(f)
     f["updated_at"] = now_iso()
     sets = ",".join(f"{k}=?" for k in f)
     with connect() as c:
@@ -187,3 +207,29 @@ def log(level: str, msg: str) -> None:
 def logs(limit: int = 100) -> list:
     with connect() as c:
         return [dict(r) for r in c.execute("SELECT * FROM logs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()]
+
+
+# ---- jobs (영상 제작 작업) ----
+def add_job(topic: str, sub: str | None, category: str, script_only: bool) -> int:
+    with connect() as c:
+        return c.execute("INSERT INTO jobs(topic,sub,category,script_only,created_at) VALUES(?,?,?,?,?)",
+                         (topic, sub, category, int(script_only), now_iso())).lastrowid
+
+
+def get_job(jid: int) -> dict | None:
+    with connect() as c:
+        r = c.execute("SELECT * FROM jobs WHERE id=?", (jid,)).fetchone()
+    return dict(r) if r else None
+
+
+def list_jobs(limit: int = 20) -> list:
+    with connect() as c:
+        return [dict(r) for r in c.execute(
+            "SELECT id,topic,sub,category,script_only,status,video_id,error,created_at,finished_at FROM jobs ORDER BY id DESC LIMIT ?",
+            (limit,)).fetchall()]
+
+
+def update_job(jid: int, **f) -> None:
+    sets = ",".join(f"{k}=?" for k in f)
+    with connect() as c:
+        c.execute(f"UPDATE jobs SET {sets} WHERE id=?", [*f.values(), jid])

@@ -22,6 +22,7 @@ def main():
     ap.add_argument("--config", default="config.yaml", help="설정 파일 경로")
     ap.add_argument("--upload", action="store_true")
     ap.add_argument("--script-only", action="store_true", help="스크립트만 생성해 검토")
+    ap.add_argument("--script-file", help="이미 만든 스크립트 JSON을 그대로 사용(API 호출 없이 렌더)")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(args.config, encoding="utf-8"))
@@ -29,10 +30,14 @@ def main():
     work = pathlib.Path("work") / stamp
     work.mkdir(parents=True, exist_ok=True)
 
+    print(f"WORK_DIR={work}", flush=True)   # 발행 사이트가 읽는 표시
     facts = pathlib.Path(args.facts_file).read_text(encoding="utf-8") if args.facts_file else None
     key = hashlib.sha256(f"{args.category}|{args.topic}|{facts or ''}".encode()).hexdigest()[:12]
     sc_cache = pathlib.Path("cache/script") / f"{key}.json"
-    if sc_cache.exists() and not args.regen:
+    if args.script_file:
+        data = json.loads(pathlib.Path(args.script_file).read_text(encoding="utf-8"))
+        print("(지정한 스크립트 파일 사용)")
+    elif sc_cache.exists() and not args.regen:
         data = json.loads(sc_cache.read_text(encoding="utf-8"))
         print("(스크립트 캐시 사용 — 새로 받으려면 --regen)")
     else:
@@ -64,6 +69,9 @@ def main():
         up = cfg["upload"]
         publish_at = schedule.next_slots(1, up["slots"], up["timezone"], taken=ledger.taken_slots())[0]
     print("수동 업로드용 메타:", package.write_package(video, data, publish_at))
+    meta = package.write_meta(video, data, problems, work, cfg, publish_at)
+    print(f"RENDER_DONE={video}", flush=True)
+    print(f"META={meta}", flush=True)
     if args.upload and cfg["upload"]["enabled"]:
         upload.upload(video, data, cfg, publish_at=publish_at)
     elif args.upload:

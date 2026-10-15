@@ -49,6 +49,10 @@ def register(path, fmt: str, category: str | None, meta: dict | None = None) -> 
         tags=meta.get("tags", []), file_path=str(p), file_hash=h,
         affiliate=int(bool(meta.get("affiliate"))), rights_confirmed=int(bool(meta.get("rights_confirmed"))),
         synthetic=int(bool(meta.get("synthetic"))),
+        claims=[{"claim": str(c.get("claim", "")), "source": str(c.get("source", "")), "checked": bool(c.get("checked"))}
+                for c in meta.get("claims", []) if isinstance(c, dict)],
+        sources=[x for x in meta.get("sources", []) if isinstance(x, dict)],
+        problems=[str(x) for x in meta.get("problems", [])],
     )
     return vid, True
 
