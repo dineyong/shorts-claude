@@ -25,6 +25,7 @@ DEFAULTS = {
         "humor": "default", "science": "default", "longform": "default",
     },
     "yt_category_ids": {},          # 비어 있으면 catalog 기본값
+    "auto_queue": [],               # 폴더에서 읽어온 영상을 점검 통과 시 자동으로 발행 대기에 넣을 카테고리 (예: ["science","humor"], 롱폼은 "longform")
     "disclosure_keywords": ["광고", "협찬", "제휴", "수수료", "파트너스"],
 }
 

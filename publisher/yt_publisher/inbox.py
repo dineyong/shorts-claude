@@ -56,6 +56,7 @@ def register(path, fmt: str, category: str | None, meta: dict | None = None) -> 
 def scan_inbox() -> dict:
     """inbox/shorts/<카테고리>/ 와 inbox/longform/ 의 새 영상을 초안으로 등록."""
     added, skipped = [], 0
+    known = {v["file_path"] for v in db.list_videos()}
     targets = [("shorts", c, config.INBOX_DIR / "shorts" / c) for c in SHORTS_CATEGORIES]
     targets.append(("longform", None, config.INBOX_DIR / "longform"))
     for fmt, cat, folder in targets:
@@ -63,6 +64,9 @@ def scan_inbox() -> dict:
             continue
         for f in sorted(folder.iterdir()):
             if f.is_file() and f.suffix.lower() in config.VIDEO_EXT:
+                if str(f) in known:
+                    skipped += 1
+                    continue
                 vid, new = register(f, fmt, cat)
                 if new:
                     added.append(vid)
