@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>발행 편성표</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="banner" hidden></div>
+<header class="top">
+  <h1>발행 편성표</h1>
+  <nav id="tabs" role="tablist">
+    <button data-tab="schedule" class="on">편성표</button>
+    <button data-tab="shorts">쇼츠</button>
+    <button data-tab="longform">롱폼</button>
+    <button data-tab="stats">통계</button>
+    <button data-tab="settings">설정</button>
+  </nav>
+  <div class="tick" id="tick"></div>
+</header>
+<main id="view"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="dlg"></dialog>
+<script src="app.js"></script>
+</body>
+</html>
