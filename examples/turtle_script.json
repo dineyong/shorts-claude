@@ -1,0 +1,189 @@
+{
+ "title": "거북이도 물속에서 익사한다고?",
+ "hook_alts": [
+  "바다거북은 물고기가 아닙니다",
+  "평생 바다에 살아도 숨은 못 바꿔요",
+  "이 동물, 물속에서 숨 못 쉽니다"
+ ],
+ "description": "바다거북은 아가미가 없어서 물 밖으로 올라와 숨을 쉬어야 해요. 쉬는 동안 얼마나 오래 버티는지, 왜 그물이 위험한지 정리했어요. #과학상식 #쇼츠 #바다거북",
+ "tags": [
+  "과학상식",
+  "바다거북",
+  "거북이",
+  "과학쇼츠",
+  "동물상식"
+ ],
+ "claims": [
+  {
+   "claim": "바다거북은 폐로 호흡하는 파충류라 정기적으로 수면 위로 올라와 숨을 쉰다",
+   "source": "NOAA Fisheries 바다거북 개요 (확인 필요: 원문 대조)"
+  },
+  {
+   "claim": "바다거북은 아가미가 없다",
+   "source": "일반 동물학 교재 (확인 필요)"
+  },
+  {
+   "claim": "활동 중에는 수 분마다, 쉴 때는 몇 시간까지 숨을 참을 수 있다",
+   "source": "NOAA Fisheries / 해양생물 자료 (확인 필요: 수치는 종·상황마다 다름)"
+  },
+  {
+   "claim": "어업용 그물에 걸리면 수면으로 올라오지 못해 익사할 수 있다",
+   "source": "NOAA Fisheries 혼획(bycatch) 자료 (확인 필요)"
+  }
+ ],
+ "scenes": [
+  {
+   "text": "거북이도 물속에서 익사합니다",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "sea turtle swimming underwater",
+    "alt_queries": [
+     "turtle ocean",
+     "green sea turtle"
+    ],
+    "show": "바다 속을 헤엄치는 거북이"
+   },
+   "effect": "punch_in",
+   "sfx": "boom"
+  },
+  {
+   "text": "바다에 평생 사는데 말이죠",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "ocean waves blue",
+    "alt_queries": [
+     "sea surface",
+     "deep blue water"
+    ],
+    "show": "넓은 바다"
+   },
+   "effect": "zoom_slow",
+   "sfx": null
+  },
+  {
+   "text": "이유는 간단해요",
+   "voice": "funny",
+   "visual": {
+    "type": "text"
+   },
+   "effect": "none",
+   "sfx": null
+  },
+  {
+   "text": "아가미가 없거든요",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "fish gills close up",
+    "alt_queries": [
+     "fish swimming",
+     "aquarium fish"
+    ],
+    "show": "아가미로 숨 쉬는 물고기"
+   },
+   "effect": "shake",
+   "sfx": "ding"
+  },
+  {
+   "text": "거북이는 사람처럼 폐로 숨 쉬는 파충류예요",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "turtle lifting head water surface",
+    "alt_queries": [
+     "turtle breathing surface",
+     "turtle head up"
+    ],
+    "show": "수면 위로 머리를 내민 거북이"
+   },
+   "effect": "punch_in",
+   "sfx": null
+  },
+  {
+   "text": "그래서 때때로 수면 위로 올라와야 해요",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "sea turtle surface",
+    "alt_queries": [
+     "turtle water surface",
+     "turtle swimming up"
+    ],
+    "show": "수면으로 올라가는 거북이"
+   },
+   "effect": "zoom_slow",
+   "sfx": null
+  },
+  {
+   "text": "그런데 근데 진짜 신기한 건",
+   "voice": "funny",
+   "visual": {
+    "type": "text"
+   },
+   "effect": "none",
+   "sfx": "whoosh"
+  },
+  {
+   "text": "쉬는 동안엔 몇 시간도 참는다는 거예요",
+   "voice": "deep",
+   "visual": {
+    "type": "stock",
+    "query": "turtle sleeping underwater coral",
+    "alt_queries": [
+     "resting turtle reef",
+     "coral reef turtle"
+    ],
+    "show": "산호 옆에서 쉬는 거북이"
+   },
+   "effect": "punch_in",
+   "sfx": "ding"
+  },
+  {
+   "text": "문제는 그물이에요",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "fishing net underwater",
+    "alt_queries": [
+     "fishing net sea",
+     "net ocean"
+    ],
+    "show": "바닷속 어망"
+   },
+   "effect": "shake",
+   "sfx": "fail"
+  },
+  {
+   "text": "걸리면 올라가질 못해서 익사하는 거죠",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "fishing nets boat sea",
+    "alt_queries": [
+     "fishing boat ocean",
+     "nets sunset"
+    ],
+    "show": "어선과 그물"
+   },
+   "effect": "zoom_slow",
+   "sfx": null
+  },
+  {
+   "text": "숨은 공기로 쉽니다. 다음 편도 궁금하면 팔로우",
+   "voice": "narrator",
+   "visual": {
+    "type": "stock",
+    "query": "sea turtle swimming",
+    "alt_queries": [
+     "turtle underwater",
+     "turtle blue"
+    ],
+    "show": "헤엄치는 거북이"
+   },
+   "effect": "punch_in",
+   "sfx": null
+  }
+ ]
+}
